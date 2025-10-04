@@ -9,6 +9,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Items/Weapons/Weapon.h"
 #include "Items/Item.h"
+#include "Animation/AnimMontage.h"
+
 
 // Sets default values
 AShatterIslandCharacter::AShatterIslandCharacter()
@@ -46,6 +48,7 @@ void AShatterIslandCharacter::BeginPlay()
 }
 void AShatterIslandCharacter::MoveForward(float value)
 {
+	if (ActionState == EActionState::ECS_Attacking) return;
 	//UE_LOG(LogTemp, Warning, TEXT("VALUE %f"), value); 
 	if (Controller && value != 0.f)
 	{
@@ -61,6 +64,7 @@ void AShatterIslandCharacter::MoveForward(float value)
 
 void AShatterIslandCharacter::MoveRight(float value)
 {
+	if (ActionState == EActionState::ECS_Attacking) return;
 	//UE_LOG(LogTemp, Warning, TEXT("VALUE %f"), value); 
 	if (Controller && value != 0.f)
 	{
@@ -94,13 +98,113 @@ void AShatterIslandCharacter::EKeyPressed()
 	{
 		OverlappingWeapon->Equip(GetMesh(), FName("Right_Hand_Socket")); 
 		ChracterState = ECharcterState::ECS_EquippedOneHandedWeapon;
+		EquippedWeapon = OverlappingWeapon;
+	}
+	else
+	{
+		if (CanDisarm())
+		{
+			PlayEquipMontage(FName("UnEquip"));
+			ChracterState = ECharcterState::ECS_Unequipped;
+		}
+		else if (CanArm())
+		{
+			PlayEquipMontage(FName("Equip"));
+			ChracterState = ECharcterState::ECS_EquippedOneHandedWeapon;
+		}
+	}
+
+}
+
+
+void AShatterIslandCharacter::Attack()
+{
+	
+	if (CanAttack())
+	{
+		PlayAttackMontage();
+		ActionState = EActionState::ECS_Attacking;
 	}
 	
 
 }
+
+bool AShatterIslandCharacter::CanAttack()
+{
+	return ActionState == EActionState::ECS_Unoccupied 
+		&& ChracterState != ECharcterState::ECS_Unequipped;
+}
+
+bool AShatterIslandCharacter::CanDisarm()
+{
+	return ActionState == EActionState::ECS_Unoccupied 
+		&& ChracterState != ECharcterState::ECS_Unequipped;
+}
+
+bool AShatterIslandCharacter::CanArm()
+{
+	return ActionState == EActionState::ECS_Unoccupied 
+		&& ChracterState == ECharcterState::ECS_Unequipped 
+		&& EquippedWeapon;
+}
+
+
+
+void AShatterIslandCharacter::PlayAttackMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && AttackMontage && ChracterState == ECharcterState::ECS_EquippedOneHandedWeapon)
+	{
+		AnimInstance->Montage_Play(AttackMontage, 1.2f);
+		const int32 Selection = FMath::RandRange(0, 1);
+
+		FName SectionName = FName();
+		switch (Selection)
+		{
+		case 0:
+			SectionName = FName("Attack1");
+			break;
+		case 1:
+			SectionName = FName("Attack2");
+			break;
+		default:
+			break;
+		}
+
+		AnimInstance->Montage_JumpToSection(SectionName, AttackMontage);
+	}
+}
+
+void AShatterIslandCharacter::PlayEquipMontage(FName SectionName)
+{
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && EquipMontage)
+	{
+		AnimInstance->Montage_Play(EquipMontage, 1.f);
+		AnimInstance->Montage_JumpToSection(SectionName, EquipMontage);
+	}
+}
+
+
+
+
+
+void AShatterIslandCharacter::AttackEnd()
+{
+
+	ActionState = EActionState::ECS_Unoccupied;
+
+
+}
+
+
+
+
+
 // Called every frame
 void AShatterIslandCharacter::Tick(float DeltaTime)
-
+			
 {
 	Super::Tick(DeltaTime);
 
@@ -119,6 +223,7 @@ void AShatterIslandCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 	PlayerInputComponent->BindAction(FName("Jump"), IE_Pressed, this , &AShatterIslandCharacter::Jump);
 
 	PlayerInputComponent->BindAction(FName("Equip"), IE_Pressed, this, &AShatterIslandCharacter::EKeyPressed);
+	PlayerInputComponent->BindAction(FName("Attack"), IE_Pressed, this, &AShatterIslandCharacter::Attack);
 
 }
 

@@ -10,7 +10,8 @@
 class USpringArmComponent;
 class UCameraComponent;
 class AItem; 
-
+class UAnimMontage;
+class AWeapon;
 
 UCLASS()
 class SHATTEREDKINGDOMS_API AShatterIslandCharacter : public ACharacter
@@ -29,6 +30,22 @@ protected:
 	void Look(float value);
 	void MoveRight(float value); 
 	void EKeyPressed(); 
+	void Attack(); 
+
+
+	
+	void PlayAttackMontage();
+
+	UFUNCTION(BlueprintCallable)
+	void AttackEnd();
+
+
+	bool CanAttack();
+
+
+	bool CanDisarm();
+	bool CanArm(); 
+	void PlayEquipMontage(FName SectionName);
 
 public:	
 	// Called every frame
@@ -45,6 +62,9 @@ private:
 
 	ECharcterState  ChracterState = ECharcterState::ECS_Unequipped;
 
+	UPROPERTY(BlueprintReadWrite , meta = (AllowPrivateAccess = "true"))
+	EActionState ActionState = EActionState::ECS_Unoccupied;
+
 	UPROPERTY(VisibleAnywhere)
 	USpringArmComponent* CameraBone;
 
@@ -52,4 +72,15 @@ private:
 	UCameraComponent* ViewCamera;
 	UPROPERTY(VisibleInstanceOnly)
 	AItem* OverlappingItem; 
+
+	// Animation Montages 
+	UPROPERTY(EditDefaultsOnly , Category = Montages)
+	UAnimMontage* AttackMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = Montages)
+	UAnimMontage* EquipMontage;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon)
+	AWeapon* EquippedWeapon = nullptr;
+
 };

@@ -28,4 +28,6 @@ void AWeapon::Equip(USceneComponent* InParent, FName InSocketName)
 	ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ItemMesh->AttachToComponent(InParent , TransformRules, InSocketName);
 
+	ItemState = EItemState::EIS_Equipped; 
+
 }
